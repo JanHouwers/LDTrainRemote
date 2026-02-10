@@ -56,3 +56,7 @@ Communicates with the Duplo Train Hub using raw LEGO Wireless Protocol 3 (LWP3) 
 - **Characteristic UUID:** `00001624-1212-efde-1623-785feabcd123`
 - **Motor packet format (11 bytes):** `0B 00 81 34 11 51 01 [CMD] 01 [SPEED] 00`
   - CMD: `01`=forward, `02`=backward, `03`=stop, `04`=LED, `06`=action, `07`=horn
+
+## Acknowledgments
+
+This project is based on the excellent work by [drndos](https://github.com/drndos) and his [duplo-train-controller](https://github.com/drndos/duplo-train-controller). Many thanks for figuring out the BLE protocol, the raw LWP3 packet format, and providing a working NimBLE implementation that made this project possible!
