@@ -1,6 +1,6 @@
 # LEGO Duplo Train Remote Control
 
-A custom remote control for the [LEGO DUPLO Steam Train (10874)](https://www.lego.com/product/steam-train-10874) and [LEGO DUPLO Cargo Train (10875)](https://www.lego.com/product/cargo-train-10875), built with a Seeed Studio XIAO ESP32S3 microcontroller. Designed for and tested with the **LEGO DUPLO Train set 10427**. Connects to the train over BLE using raw NimBLE and the LEGO Wireless Protocol 3 (LWP3).
+A custom remote control for the Lego duplo 10427 train, built with a Seeed Studio XIAO ESP32S3 microcontroller. Designed for and tested with the **LEGO DUPLO Train set 10427**. Connects to the train over BLE using raw NimBLE and the LEGO Wireless Protocol 3 (LWP3).
 
 ## Hardware
 
