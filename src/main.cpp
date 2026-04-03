@@ -201,7 +201,7 @@ static void handlePoti() {
     int hi = POT_MID + POT_DEADBAND; // 2355
 
     if (raw < lo) {
-        speed = map(raw, 0, lo, SPEED_MAX, 0);
+        speed = map(raw, POT_MIN, lo, SPEED_MAX, 0);
     } else if (raw > hi) {
         speed = map(raw, hi, POT_MAX, 0, -SPEED_MAX);
     }

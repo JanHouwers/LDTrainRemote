@@ -8,10 +8,10 @@
 #define BTN_LED_PIN     6       // D5 / GPIO6 - LED color cycle
 
 // ── Potentiometer ──────────────────────────────────────
-#define POT_DEADBAND    307     // +/- around midpoint (2048) ~15% of 4096
+#define POT_DEADBAND    150     // +/- around midpoint (2048) ~7% of 4096
 #define POT_MID         2048
-#define POT_MIN         0
-#define POT_MAX         4095
+#define POT_MIN         350     // actual pot minimum (tune to hardware)
+#define POT_MAX         3750    // actual pot maximum (tune to hardware)
 
 // ── Button Timing (ms) ────────────────────────────────
 #define DEBOUNCE_MS     50
