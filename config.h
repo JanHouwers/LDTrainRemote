@@ -19,5 +19,9 @@
 // ── Train Speed ────────────────────────────────────────
 #define SPEED_MAX       100
 
+// ── Auto Power-Off (deep sleep) ───────────────────────
+#define SLEEP_TIMEOUT_MS  300000  // 5 minutes of inactivity
+#define POT_ACTIVITY_THRESHOLD 50 // ADC change to count as activity
+
 // ── Loop ───────────────────────────────────────────────
 #define LOOP_DELAY_MS   50

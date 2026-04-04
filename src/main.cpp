@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include <Bounce2.h>
+#include <esp_sleep.h>
 #include "../config.h"
 
 // ── LEGO Wireless Protocol ──────────────────────────────
@@ -60,6 +61,36 @@ static Bounce pbWater = Bounce();
 static size_t g_ledIndex = 0;
 static size_t g_actionIndex = 0;
 static int g_lastSpeed = 0; // last sent speed: positive=fwd, negative=bck, 0=stop
+
+// ── Inactivity / Deep Sleep ─────────────────────────────
+static unsigned long g_lastActivityMs = 0;
+static int g_lastPotRaw = 0;
+
+static void resetActivityTimer() {
+    g_lastActivityMs = millis();
+}
+
+static void enterDeepSleep() {
+    Serial.println("Inactivity timeout — entering deep sleep");
+    Serial.flush();
+
+    // Disconnect BLE cleanly
+    if (g_client && g_client->isConnected()) {
+        g_client->disconnect();
+    }
+    cleanupClient();
+    NimBLEDevice::getScan()->stop();
+    NimBLEDevice::deinit(true);
+
+    // Wake on any button press (active-low)
+    const uint64_t wakeupMask = (1ULL << BTN_STOP_PIN)
+                              | (1ULL << BTN_HORN_PIN)
+                              | (1ULL << BTN_LED_PIN)
+                              | (1ULL << BTN_WATER_PIN);
+    esp_deep_sleep_enable_gpio_wakeup(wakeupMask, ESP_GPIO_WAKEUP_GPIO_LOW);
+
+    esp_deep_sleep_start();
+}
 
 // ── BLE Helpers ──────────────────────────────────────────
 static bool isLegoTrain(const NimBLEAdvertisedDevice &adv) {
@@ -206,6 +237,12 @@ static void handlePoti() {
         speed = map(raw, hi, POT_MAX, 0, -SPEED_MAX);
     }
 
+    // Detect potentiometer movement as user activity
+    if (abs(raw - g_lastPotRaw) > POT_ACTIVITY_THRESHOLD) {
+        g_lastPotRaw = raw;
+        resetActivityTimer();
+    }
+
     int diff = abs(speed - g_lastSpeed);
     // Always send on stop/start transitions; otherwise require threshold + minimum interval
     bool isTransition = (speed == 0) != (g_lastSpeed == 0);
@@ -218,31 +255,45 @@ static void handlePoti() {
 
 // ── Buttons ──────────────────────────────────────────────
 static void handleButtons() {
+    bool anyPressed = false;
     if (pbStop.update() && pbStop.fell()) {
         g_char->writeValue(kStopPacket, sizeof(kStopPacket), true);
         g_lastSpeed = 0;
         Serial.println("Button: Stop");
+        anyPressed = true;
     }
     if (pbHorn.update() && pbHorn.fell()) {
         g_char->writeValue(kHornPacket, sizeof(kHornPacket), true);
         Serial.println("Button: Horn");
+        anyPressed = true;
     }
     if (pbLed.update() && pbLed.fell()) {
         g_ledIndex = (g_ledIndex + 1) % kNumLedColors;
         g_char->writeValue(kLedPackets[g_ledIndex], sizeof(kLedPackets[0]), true);
         Serial.printf("Button: LED color %u\n", (unsigned)g_ledIndex);
+        anyPressed = true;
     }
     if (pbWater.update() && pbWater.fell()) {
         g_actionIndex = (g_actionIndex + 1) % kNumActions;
         g_char->writeValue(kActionPackets[g_actionIndex], sizeof(kActionPackets[0]), true);
         Serial.printf("Button: Action %u\n", (unsigned)g_actionIndex);
+        anyPressed = true;
     }
+    if (anyPressed) resetActivityTimer();
 }
 
 // ── Setup & Loop ─────────────────────────────────────────
 void setup() {
     Serial.begin(115200);
     Serial.println("Duplo Train Remote (raw NimBLE)");
+
+    if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_GPIO) {
+        Serial.println("Woke up from deep sleep (button press)");
+    }
+
+    // Initialize activity timer and potentiometer baseline
+    g_lastActivityMs = millis();
+    g_lastPotRaw = analogRead(POT_PIN);
 
     // Buttons with Bounce2 debouncing
     pbStop.attach(BTN_STOP_PIN, INPUT_PULLUP);
@@ -275,6 +326,11 @@ void setup() {
 }
 
 void loop() {
+    // Check inactivity timeout — sleep if idle too long
+    if (millis() - g_lastActivityMs >= SLEEP_TIMEOUT_MS) {
+        enterDeepSleep();
+    }
+
     // Detect disconnection: client exists but lost connection
     if (g_client && !g_client->isConnected()) {
         Serial.println("Connection lost; cleaning up");
