@@ -66,6 +66,9 @@ static int g_lastSpeed = 0; // last sent speed: positive=fwd, negative=bck, 0=st
 static unsigned long g_lastActivityMs = 0;
 static int g_lastPotRaw = 0;
 
+// Forward declaration
+static void cleanupClient();
+
 static void resetActivityTimer() {
     g_lastActivityMs = millis();
 }
@@ -87,7 +90,7 @@ static void enterDeepSleep() {
                               | (1ULL << BTN_HORN_PIN)
                               | (1ULL << BTN_LED_PIN)
                               | (1ULL << BTN_WATER_PIN);
-    esp_deep_sleep_enable_gpio_wakeup(wakeupMask, ESP_GPIO_WAKEUP_GPIO_LOW);
+    esp_sleep_enable_ext1_wakeup(wakeupMask, ESP_EXT1_WAKEUP_ANY_LOW);
 
     esp_deep_sleep_start();
 }
